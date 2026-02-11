@@ -159,5 +159,6 @@ export function useOcrProcessing() {
     setProcessing,
     extractImages,
     ocrBatch,
+    ocrSingleImage,
   };
 }

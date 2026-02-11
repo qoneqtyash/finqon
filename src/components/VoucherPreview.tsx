@@ -20,7 +20,7 @@ export default function VoucherPreview({ voucher }: VoucherPreviewProps) {
       style={{
         borderColor: "#b43232",
         width: "580px",
-        height: "410px",
+        height: "340px",
         fontSize: "10px",
         fontFamily: "'Noto Sans', sans-serif",
         position: "relative",
@@ -141,118 +141,124 @@ export default function VoucherPreview({ voucher }: VoucherPreviewProps) {
 
       {/* BOTTOM SECTION */}
       <div
-        className="flex"
         style={{
           height: "calc(100% - 70px - 113px)",
-          padding: "3px 10px",
+          padding: "6px 10px 4px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "6px",
         }}
       >
-        {/* Left: Authorised by + Paid by grid */}
-        <div className="flex flex-col gap-1" style={{ width: "40%" }}>
-          <div>
-            <span
-              style={{ fontSize: "7px", fontWeight: 700, marginRight: "4px" }}
-            >
-              Authorised by
-            </span>
-            <div
-              className="border border-[#b43232] px-1 mt-0.5"
-              style={{
-                minHeight: "20px",
-                color: "#000096",
-                fontSize: "9px",
-              }}
-            >
-              {voucher.authorisedBy}
-            </div>
+        {/* Authorised by — spans full width */}
+        <div className="flex items-center gap-1">
+          <span
+            style={{ fontSize: "7px", fontWeight: 700, whiteSpace: "nowrap" }}
+          >
+            Authorised by
+          </span>
+          <div
+            className="border border-[#b43232] px-1 flex-1"
+            style={{
+              minHeight: "18px",
+              color: "#000096",
+              fontSize: "9px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {voucher.authorisedBy}
           </div>
+        </div>
+
+        {/* Center: Recd. amount — takes remaining space */}
+        <div
+          className="flex flex-col items-center justify-center flex-1"
+        >
+          <span
+            className="font-bold underline"
+            style={{ fontSize: "15px", color: "#000096" }}
+          >
+            {voucher.amount}
+          </span>
+          <span style={{ fontSize: "8px", fontWeight: 700, marginTop: "2px" }}>
+            Recd. above sum of ₹
+          </span>
+        </div>
+
+        {/* Row: Paid by grid + Signature — at bottom */}
+        <div className="flex items-end justify-between">
           {/* Paid by grid */}
           <div
             className="grid border border-[#b43232]"
             style={{
               gridTemplateColumns: "auto auto auto",
-              fontSize: "6px",
-              lineHeight: "10px",
+              fontSize: "9px",
+              lineHeight: "16px",
+              width: "fit-content",
             }}
           >
             <div
-              className="border-r border-[#b43232] flex items-center px-0.5"
+              className="border-r border-[#b43232] flex items-center px-1.5"
               style={{ gridRow: "1 / 4", fontWeight: 700 }}
             >
               Paid by
             </div>
             <div
-              className={`border-b border-r border-[#b43232] px-0.5 ${
+              className={`border-b border-r border-[#b43232] px-1.5 ${
                 voucher.paidByMethod === "cash" ? "bg-green-100 font-bold text-[#000096]" : ""
               }`}
             >
               Cash
             </div>
             <div
-              className={`border-b border-[#b43232] px-0.5 ${
+              className={`border-l border-[#b43232] px-1.5 ${
                 voucher.paidByMethod === "bank" ? "bg-green-100 font-bold text-[#000096]" : ""
               }`}
-              style={{ gridRow: "1 / 4" }}
+              style={{ gridRow: "1 / 4", display: "flex", alignItems: "center" }}
             >
               Drawn on Bank
             </div>
-            <div className="border-b border-r border-[#b43232] px-0.5">
+            <div className="border-b border-r border-[#b43232] px-1.5">
               or
             </div>
             <div
-              className={`border-r border-[#b43232] px-0.5 ${
+              className={`border-r border-[#b43232] px-1.5 ${
                 voucher.paidByMethod === "cheque" ? "bg-green-100 font-bold text-[#000096]" : ""
               }`}
             >
               Cheque
             </div>
           </div>
-        </div>
 
-        {/* Center: Recd. amount */}
-        <div
-          className="flex flex-col items-center justify-center flex-1"
-          style={{ padding: "0 8px" }}
-        >
-          <span style={{ fontSize: "8px", fontWeight: 700 }}>
-            Recd. above sum of ₹
-          </span>
-          <span
-            className="font-bold underline"
-            style={{ fontSize: "13px", color: "#000096" }}
-          >
-            {voucher.amount}
-          </span>
-        </div>
-
-        {/* Right: Receiver&apos;s Signature */}
-        <div
-          className="flex flex-col items-center justify-center border border-[#b43232] rounded-sm"
-          style={{
-            width: "65px",
-            height: "44px",
-            backgroundColor: "#e6c8c8",
-            alignSelf: "flex-end",
-          }}
-        >
-          <span
+          {/* Right: Receiver&apos;s Signature */}
+          <div
+            className="flex flex-col items-center justify-center border border-[#b43232] rounded-sm"
             style={{
-              fontSize: "6px",
-              fontWeight: 700,
-              color: "#965050",
+              width: "65px",
+              height: "44px",
+              backgroundColor: "#e6c8c8",
             }}
           >
-            Receiver&apos;s
-          </span>
-          <span
-            style={{
-              fontSize: "6px",
-              fontWeight: 700,
-              color: "#965050",
-            }}
-          >
-            Signature
-          </span>
+            <span
+              style={{
+                fontSize: "6px",
+                fontWeight: 700,
+                color: "#965050",
+              }}
+            >
+              Receiver&apos;s
+            </span>
+            <span
+              style={{
+                fontSize: "6px",
+                fontWeight: 700,
+                color: "#965050",
+              }}
+            >
+              Signature
+            </span>
+          </div>
         </div>
       </div>
     </div>

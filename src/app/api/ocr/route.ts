@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ocrImage } from "@/lib/vlm/client";
 
+// Allow up to 60s on Vercel (Hobby plan max) — VLM calls take 10-30s
+export const maxDuration = 60;
+
 const MAX_BASE64_SIZE = 10 * 1024 * 1024; // ~10MB base64 (roughly 7.5MB image)
 
 /**

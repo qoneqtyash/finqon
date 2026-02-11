@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  // Native modules that should not be bundled by webpack
+  serverExternalPackages: ["sharp"],
 };
 
 export default nextConfig;

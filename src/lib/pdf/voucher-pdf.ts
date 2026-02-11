@@ -210,7 +210,7 @@ function drawVoucher(doc: jsPDF, data: VoucherData): void {
 
   const authBoxX = fieldX + 30;
   const authBoxY = bottomY + 1;
-  const authBoxW = 35;
+  const authBoxW = mx + cw - authBoxX - 2; // stretch to near the right edge of outer border
   const authBoxH = 12;
   doc.setDrawColor(...DARK_RED);
   doc.setLineWidth(0.3);

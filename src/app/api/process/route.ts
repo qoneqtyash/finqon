@@ -3,6 +3,9 @@ import { extractImagesFromDocx } from "@/lib/files/docx-extractor";
 import { extractImagesFromPdf } from "@/lib/files/pdf-extractor";
 import { optimizeImage } from "@/lib/files/image-optimizer";
 
+// Allow up to 60s on Vercel — large DOCX with many images takes time
+export const maxDuration = 60;
+
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 /**

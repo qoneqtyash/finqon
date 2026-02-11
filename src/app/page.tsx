@@ -5,6 +5,7 @@ import DropZone from "@/components/DropZone";
 import FileList from "@/components/FileList";
 import ProcessingStatus from "@/components/ProcessingStatus";
 import VoucherList from "@/components/VoucherList";
+import FailedImages, { FailedImage } from "@/components/FailedImages";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useOcrProcessing, ExtractedImage } from "@/hooks/useOcrProcessing";
 import { useVoucherState } from "@/hooks/useVoucherState";
@@ -35,13 +36,15 @@ function createBlankVoucher(): VoucherData {
 export default function Home() {
   const { files, addFiles, removeFile, updateFile, clearFiles } =
     useFileUpload();
-  const { processing, setProcessing, extractImages, ocrBatch } =
+  const { processing, setProcessing, extractImages, ocrBatch, ocrSingleImage } =
     useOcrProcessing();
   const { vouchers, addVouchers, updateVoucher, removeVoucher, clearAll } =
     useVoucherState();
 
   const [isRunning, setIsRunning] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<FailedImage[]>([]);
 
   const handleFilesSelected = useCallback(
     (newFiles: File[]) => {
@@ -91,7 +94,7 @@ export default function Home() {
       // Step 2: Run OCR on all images
       const ocrResults = await ocrBatch(allImages);
 
-      // Step 3: Map OCR results to voucher data
+      // Step 3: Separate successes and failures
       const newVouchers = ocrResults
         .filter((r) => r.data !== null)
         .map((r) => {
@@ -104,16 +107,25 @@ export default function Home() {
           );
         });
 
+      const newFailed = ocrResults
+        .filter((r) => r.error)
+        .map((r) => ({
+          image: r.image,
+          error: r.error || "Unknown error",
+        }));
+
       if (newVouchers.length > 0) {
         addVouchers(newVouchers);
       }
 
-      const failedResults = ocrResults.filter((r) => r.error);
-      if (failedResults.length > 0) {
-        const errors = failedResults.map((r) => r.error).filter(Boolean);
-        const uniqueErrors = [...new Set(errors)];
+      // Append to existing failed images (don't replace)
+      if (newFailed.length > 0) {
+        setFailedImages((prev) => [...prev, ...newFailed]);
+      }
+
+      if (newFailed.length > 0) {
         setError(
-          `${failedResults.length} image(s) failed OCR. Successfully processed ${newVouchers.length}. Error: ${uniqueErrors.join("; ")}`
+          `${newFailed.length} image(s) failed OCR. ${newVouchers.length} processed successfully.`
         );
       }
     } catch (err) {
@@ -130,6 +142,110 @@ export default function Home() {
     updateFile,
   ]);
 
+  // Retry a single failed image
+  const handleRetrySingle = useCallback(
+    async (image: ExtractedImage) => {
+      setIsRetrying(true);
+      try {
+        const result = await ocrSingleImage(image.base64);
+
+        if (result.data) {
+          // Success — remove from failed, add voucher
+          setFailedImages((prev) =>
+            prev.filter((fi) => fi.image.name !== image.name)
+          );
+          const dataUri = `data:image/jpeg;base64,${image.base64}`;
+          const voucher = mapOcrToVoucher(
+            result.data,
+            dataUri,
+            image.sourceFileName,
+            result.provider
+          );
+          addVouchers([voucher]);
+        } else {
+          // Still failed — update the error message
+          setFailedImages((prev) =>
+            prev.map((fi) =>
+              fi.image.name === image.name
+                ? { ...fi, error: result.error || "OCR failed again" }
+                : fi
+            )
+          );
+        }
+      } catch (err) {
+        setFailedImages((prev) =>
+          prev.map((fi) =>
+            fi.image.name === image.name
+              ? { ...fi, error: (err as Error).message }
+              : fi
+          )
+        );
+      } finally {
+        setIsRetrying(false);
+      }
+    },
+    [ocrSingleImage, addVouchers]
+  );
+
+  // Retry all failed images
+  const handleRetryAll = useCallback(async () => {
+    if (failedImages.length === 0) return;
+
+    setIsRetrying(true);
+    setProcessing({
+      total: failedImages.length,
+      completed: 0,
+      failed: 0,
+      stage: "ocr",
+    });
+
+    const imagesToRetry = failedImages.map((fi) => fi.image);
+    const results = await ocrBatch(imagesToRetry);
+
+    const succeeded = results.filter((r) => r.data !== null);
+    const stillFailed = results.filter((r) => r.error);
+
+    // Add successful ones as vouchers
+    if (succeeded.length > 0) {
+      const newVouchers = succeeded.map((r) => {
+        const dataUri = `data:image/jpeg;base64,${r.image.base64}`;
+        return mapOcrToVoucher(
+          r.data!,
+          dataUri,
+          r.image.sourceFileName,
+          r.provider
+        );
+      });
+      addVouchers(newVouchers);
+    }
+
+    // Update failed list
+    const newFailedList = stillFailed.map((r) => ({
+      image: r.image,
+      error: r.error || "OCR failed again",
+    }));
+    setFailedImages(newFailedList);
+
+    if (stillFailed.length > 0) {
+      setError(
+        `Retry: ${succeeded.length} succeeded, ${stillFailed.length} still failing.`
+      );
+    } else {
+      setError(null);
+    }
+
+    setIsRetrying(false);
+  }, [failedImages, ocrBatch, addVouchers, setProcessing]);
+
+  const handleDismissFailedImage = useCallback((imageName: string) => {
+    setFailedImages((prev) => prev.filter((fi) => fi.image.name !== imageName));
+  }, []);
+
+  const handleDismissAllFailed = useCallback(() => {
+    setFailedImages([]);
+    setError(null);
+  }, []);
+
   const handleNewVoucher = useCallback(() => {
     addVouchers([createBlankVoucher()]);
   }, [addVouchers]);
@@ -138,6 +254,7 @@ export default function Home() {
     clearFiles();
     clearAll();
     setError(null);
+    setFailedImages([]);
   }, [clearFiles, clearAll]);
 
   return (
@@ -160,7 +277,7 @@ export default function Home() {
             >
               + New Voucher
             </button>
-            {(files.length > 0 || vouchers.length > 0) && (
+            {(files.length > 0 || vouchers.length > 0 || failedImages.length > 0) && (
               <button
                 onClick={handleStartFresh}
                 className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600"
@@ -174,7 +291,7 @@ export default function Home() {
 
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Upload Section */}
-        {vouchers.length === 0 && (
+        {vouchers.length === 0 && failedImages.length === 0 && (
           <section>
             <DropZone
               onFilesSelected={handleFilesSelected}
@@ -213,7 +330,7 @@ export default function Home() {
         )}
 
         {/* Processing Status */}
-        {isRunning && processing.stage !== "done" && (
+        {(isRunning || isRetrying) && processing.stage !== "done" && (
           <ProcessingStatus
             total={processing.total}
             completed={processing.completed}
@@ -235,6 +352,16 @@ export default function Home() {
           </div>
         )}
 
+        {/* Failed Images with Retry */}
+        <FailedImages
+          failedImages={failedImages}
+          onRetry={handleRetrySingle}
+          onRetryAll={handleRetryAll}
+          onDismiss={handleDismissFailedImage}
+          onDismissAll={handleDismissAllFailed}
+          isRetrying={isRetrying}
+        />
+
         {/* Voucher List */}
         <VoucherList
           vouchers={vouchers}
@@ -244,7 +371,7 @@ export default function Home() {
         />
 
         {/* Upload more / create new when vouchers exist */}
-        {vouchers.length > 0 && !isRunning && (
+        {(vouchers.length > 0 || failedImages.length > 0) && !isRunning && (
           <section className="pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-500 mb-2">Add more</p>
             <div className="flex items-start gap-4">
