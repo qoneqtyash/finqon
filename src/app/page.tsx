@@ -9,7 +9,28 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { useOcrProcessing, ExtractedImage } from "@/hooks/useOcrProcessing";
 import { useVoucherState } from "@/hooks/useVoucherState";
 import { mapOcrToVoucher } from "@/lib/utils/field-mapper";
-import { UploadedFile } from "@/types/voucher";
+import { UploadedFile, VoucherData } from "@/types/voucher";
+import { v4 as uuidv4 } from "uuid";
+
+function createBlankVoucher(): VoucherData {
+  return {
+    id: uuidv4(),
+    sourceImageUrl: "",
+    sourceFileName: "",
+    voucherNo: "",
+    date: "",
+    amount: "",
+    payTo: "",
+    rsInWords: "",
+    being: "",
+    andDebit: "",
+    authorisedBy: "",
+    paidByMethod: "cash",
+    attachSource: false,
+    ocrProvider: "manual",
+    rawOcrData: null,
+  };
+}
 
 export default function Home() {
   const { files, addFiles, removeFile, updateFile, clearFiles } =
@@ -87,10 +108,12 @@ export default function Home() {
         addVouchers(newVouchers);
       }
 
-      const failedCount = ocrResults.filter((r) => r.error).length;
-      if (failedCount > 0) {
+      const failedResults = ocrResults.filter((r) => r.error);
+      if (failedResults.length > 0) {
+        const errors = failedResults.map((r) => r.error).filter(Boolean);
+        const uniqueErrors = [...new Set(errors)];
         setError(
-          `${failedCount} image(s) failed OCR. Successfully processed ${newVouchers.length}.`
+          `${failedResults.length} image(s) failed OCR. Successfully processed ${newVouchers.length}. Error: ${uniqueErrors.join("; ")}`
         );
       }
     } catch (err) {
@@ -106,6 +129,10 @@ export default function Home() {
     setProcessing,
     updateFile,
   ]);
+
+  const handleNewVoucher = useCallback(() => {
+    addVouchers([createBlankVoucher()]);
+  }, [addVouchers]);
 
   const handleStartFresh = useCallback(() => {
     clearFiles();
@@ -123,17 +150,25 @@ export default function Home() {
               Cash Voucher Generator
             </h1>
             <p className="text-xs text-gray-500">
-              Upload receipts &rarr; OCR &rarr; Edit &rarr; Download PDF
+              Upload receipts for OCR or create from scratch &rarr; Edit &rarr; Download PDF
             </p>
           </div>
-          {(files.length > 0 || vouchers.length > 0) && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleStartFresh}
-              className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600"
+              onClick={handleNewVoucher}
+              className="text-sm px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium"
             >
-              Start Fresh
+              + New Voucher
             </button>
-          )}
+            {(files.length > 0 || vouchers.length > 0) && (
+              <button
+                onClick={handleStartFresh}
+                className="text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600"
+              >
+                Start Fresh
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -159,6 +194,18 @@ export default function Home() {
                       .length
                   }{" "}
                   file(s)
+                </button>
+              </div>
+            )}
+
+            {files.length === 0 && !isRunning && (
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <span className="text-sm text-gray-400">or</span>
+                <button
+                  onClick={handleNewVoucher}
+                  className="px-5 py-2 rounded-lg border-2 border-dashed border-green-400 hover:border-green-600 hover:bg-green-50 text-green-700 font-medium text-sm"
+                >
+                  Create Blank Voucher
                 </button>
               </div>
             )}
@@ -196,30 +243,40 @@ export default function Home() {
           onClearAll={handleStartFresh}
         />
 
-        {/* Upload more when vouchers exist */}
+        {/* Upload more / create new when vouchers exist */}
         {vouchers.length > 0 && !isRunning && (
           <section className="pt-4 border-t border-gray-200">
-            <p className="text-sm text-gray-500 mb-2">Add more receipts</p>
-            <DropZone
-              onFilesSelected={handleFilesSelected}
-              disabled={isRunning}
-            />
-            <FileList files={files} onRemove={removeFile} />
-            {files.some((f) => f.status === "pending") && (
-              <div className="mt-3 flex justify-center">
-                <button
-                  onClick={handleProcess}
-                  className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm"
-                >
-                  Process{" "}
-                  {
-                    files.filter((f: UploadedFile) => f.status === "pending")
-                      .length
-                  }{" "}
-                  file(s)
-                </button>
+            <p className="text-sm text-gray-500 mb-2">Add more</p>
+            <div className="flex items-start gap-4">
+              <div className="flex-1">
+                <DropZone
+                  onFilesSelected={handleFilesSelected}
+                  disabled={isRunning}
+                />
+                <FileList files={files} onRemove={removeFile} />
+                {files.some((f) => f.status === "pending") && (
+                  <div className="mt-3 flex justify-center">
+                    <button
+                      onClick={handleProcess}
+                      className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm"
+                    >
+                      Process{" "}
+                      {
+                        files.filter((f: UploadedFile) => f.status === "pending")
+                          .length
+                      }{" "}
+                      file(s)
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+              <button
+                onClick={handleNewVoucher}
+                className="px-4 py-2 rounded-lg border-2 border-dashed border-green-400 hover:border-green-600 hover:bg-green-50 text-green-700 font-medium text-sm whitespace-nowrap"
+              >
+                + Blank Voucher
+              </button>
+            </div>
           </section>
         )}
       </main>

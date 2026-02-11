@@ -37,6 +37,8 @@ export async function callQwen(imageDataUri: string): Promise<string> {
         ],
         max_tokens: 4096,
         temperature: 0.1,
+        // Disable Qwen3 thinking mode to get clean JSON output
+        chat_template_kwargs: { enable_thinking: false },
       }),
       signal: controller.signal,
     });

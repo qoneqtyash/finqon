@@ -39,7 +39,9 @@ export async function POST(request: NextRequest) {
     }
 
     const dataUri = `data:image/jpeg;base64,${imageBase64}`;
+    console.log(`[OCR] Processing image (${Math.round(imageBase64.length / 1024)}KB base64)`);
     const result = await ocrImage(dataUri);
+    console.log(`[OCR] Success: provider=${result.provider}, company=${result.data?.company || "unknown"}`);
 
     return NextResponse.json(result);
   } catch (err) {

@@ -6,6 +6,9 @@ import { OcrData } from "@/types/voucher";
  * Handles markdown code fences and bare JSON.
  */
 export function extractJson(text: string): OcrData | null {
+  // Strip Qwen3 thinking blocks if present
+  text = text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+
   // Try markdown code block first
   const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   if (fenceMatch) {

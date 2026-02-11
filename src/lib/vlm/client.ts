@@ -16,18 +16,20 @@ export async function ocrImage(imageDataUri: string): Promise<VlmResult> {
   // Try Qwen first
   try {
     const rawText = await callQwen(imageDataUri);
+    console.log(`[VLM] Qwen raw response (first 300 chars): ${rawText.slice(0, 300)}`);
     const data = extractJson(rawText);
     if (data) {
       return { data, provider: "qwen" };
     }
-    console.warn("Qwen returned unparseable response, falling back to GPT-4o");
+    console.warn("[VLM] Qwen returned unparseable response, falling back to GPT-4o");
   } catch (err) {
-    console.warn("Qwen failed, falling back to GPT-4o:", (err as Error).message);
+    console.warn("[VLM] Qwen failed, falling back to GPT-4o:", (err as Error).message);
   }
 
   // Fallback to GPT-4o
   try {
     const rawText = await callOpenAI(imageDataUri);
+    console.log(`[VLM] OpenAI raw response (first 300 chars): ${rawText.slice(0, 300)}`);
     const data = extractJson(rawText);
     if (data) {
       return { data, provider: "openai" };
