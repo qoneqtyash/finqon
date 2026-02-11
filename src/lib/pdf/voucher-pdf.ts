@@ -298,24 +298,24 @@ function drawVoucher(doc: jsPDF, data: VoucherData): void {
 
   // ── "Recd. above sum of ₹" ──
   const recdX = mx + cw * 0.38;
-  const recdY = bottomY + (bottomEnd - bottomY) * 0.4;
+  const recdY = bottomY + (bottomEnd - bottomY) * 0.55;
   doc.setFont("NotoSans", "bold");
   doc.setFontSize(9);
   doc.setTextColor(...BLACK);
   doc.text("Recd. above sum of  \u20B9", recdX, recdY);
 
-  // Amount value
+  // Amount value + underline — to the right of the text, on the same line
   const amtX = recdX + 48;
   doc.setFont("NotoSans", "bold");
   doc.setFontSize(14);
   doc.setTextColor(...BLUE_INK);
   doc.text(amountNum, amtX, recdY);
 
-  // Underline
+  // Underline well below the text
   doc.setDrawColor(...BLACK);
   doc.setLineWidth(0.3);
   const ulW = Math.max(doc.getTextWidth(amountNum) + 5, 30);
-  doc.line(amtX, recdY + 1.5, amtX + ulW, recdY + 1.5);
+  doc.line(amtX - 1, recdY + 3, amtX + ulW, recdY + 3);
 
   // ── Receiver's Signature box ──
   const sigW = 35;
