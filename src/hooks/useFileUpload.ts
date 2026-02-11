@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { upload } from "@vercel/blob/client";
 import { v4 as uuidv4 } from "uuid";
 import { UploadedFile } from "@/types/voucher";
 
@@ -38,13 +37,22 @@ export function useFileUpload() {
       updateFile(entry.id, { status: "uploading" });
 
       try {
-        const blob = await upload(entry.name, entry.file, {
-          access: "public",
-          handleUploadUrl: "/api/upload-token",
+        const formData = new FormData();
+        formData.append("file", entry.file);
+
+        const resp = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
         });
 
-        updateFile(entry.id, { status: "uploaded", blobUrl: blob.url });
-        return blob.url;
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.error || "Upload failed");
+        }
+
+        const { url } = await resp.json();
+        updateFile(entry.id, { status: "uploaded", blobUrl: url });
+        return url;
       } catch (err) {
         updateFile(entry.id, {
           status: "error",
