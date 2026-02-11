@@ -340,43 +340,46 @@ function drawVoucher(doc: jsPDF, data: VoucherData): void {
 }
 
 /**
- * Add the source receipt image as a full page (portrait A5).
- * The image is centered and scaled to fit within margins.
+ * Draw the source receipt image below the voucher on the same A4 page.
+ * Called after drawVoucher when the page is A4 portrait.
+ * The voucher occupies the top ~148mm; the image goes in the remaining space.
  */
-function addSourceImagePage(doc: jsPDF, imageDataUri: string): void {
-  doc.addPage("a5", "portrait");
-  const pageW = 148; // A5 portrait width
-  const pageH = 210; // A5 portrait height
-  const margin = 10;
+function drawSourceImage(
+  doc: jsPDF,
+  imageDataUri: string,
+  topOffset: number
+): void {
+  const pageW = 210; // A4 width
+  const pageH = 297; // A4 height
+  const margin = 8;
   const maxW = pageW - 2 * margin;
-  const maxH = pageH - 2 * margin - 10; // leave room for title
+  const maxH = pageH - topOffset - margin; // remaining space below voucher
 
-  // Title
+  // "Source Receipt" label
   doc.setFont("NotoSans", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
-  doc.text("Source Receipt", pageW / 2, margin + 5, { align: "center" });
+  doc.text("Source Receipt", pageW / 2, topOffset + 4, { align: "center" });
+
+  const imgAreaY = topOffset + 6;
+  const imgAreaH = maxH - 6;
 
   try {
-    // Get image dimensions to preserve aspect ratio
     const imgProps = doc.getImageProperties(imageDataUri);
     const imgAspect = imgProps.width / imgProps.height;
-    const boxAspect = maxW / maxH;
+    const boxAspect = maxW / imgAreaH;
 
     let drawW = maxW;
-    let drawH = maxH;
+    let drawH = imgAreaH;
 
     if (imgAspect > boxAspect) {
-      // Image is wider — fit to width
       drawH = maxW / imgAspect;
     } else {
-      // Image is taller — fit to height
-      drawW = maxH * imgAspect;
+      drawW = imgAreaH * imgAspect;
     }
 
-    // Center within available area
     const drawX = margin + (maxW - drawW) / 2;
-    const drawY = margin + 10 + (maxH - drawH) / 2;
+    const drawY = imgAreaY + (imgAreaH - drawH) / 2;
 
     doc.addImage(
       imageDataUri,
@@ -386,36 +389,71 @@ function addSourceImagePage(doc: jsPDF, imageDataUri: string): void {
       drawW,
       drawH,
       undefined,
-      "FAST",
+      "FAST"
     );
   } catch (err) {
     console.warn("Could not attach source image to PDF:", err);
     doc.setFontSize(9);
     doc.setTextColor(180, 50, 50);
-    doc.text("(Source image could not be embedded)", pageW / 2, pageH / 2, {
+    doc.text("(Source image could not be embedded)", pageW / 2, imgAreaY + 20, {
       align: "center",
     });
   }
 }
 
 /**
+ * Draw a voucher page. Returns the page format used.
+ * - Without source: A5 landscape (210×148mm)
+ * - With source: A4 portrait — voucher on top, source image below
+ */
+function drawVoucherPage(
+  doc: jsPDF,
+  voucher: VoucherData,
+  isFirstPage: boolean
+): void {
+  const hasSource = voucher.attachSource && voucher.sourceImageUrl;
+
+  if (hasSource) {
+    // A4 portrait page
+    if (isFirstPage) {
+      // First page is already created by jsPDF constructor — but it might be
+      // the wrong size. We add a new A4 page and delete the first if needed.
+    }
+    if (!isFirstPage) {
+      doc.addPage("a4", "portrait");
+    }
+    drawVoucher(doc, voucher);
+    // Voucher occupies top ~156mm (8mm margin + 132mm content + 8mm margin + gap)
+    drawSourceImage(doc, voucher.sourceImageUrl, 148 + 4);
+  } else {
+    // A5 landscape page
+    if (!isFirstPage) {
+      doc.addPage("a5", "landscape");
+    }
+    drawVoucher(doc, voucher);
+  }
+}
+
+/**
  * Generate a single-voucher PDF and return the blob.
- * If attachSource is true, the source receipt image is added as a second page.
+ * If attachSource is true, uses A4 portrait with voucher + source on same page.
  */
 export async function generateVoucherPdf(
   voucher: VoucherData
 ): Promise<Blob> {
+  const hasSource = voucher.attachSource && voucher.sourceImageUrl;
+
   const doc = new jsPDF({
-    orientation: "landscape",
+    orientation: hasSource ? "portrait" : "landscape",
     unit: "mm",
-    format: "a5",
+    format: hasSource ? "a4" : "a5",
   });
 
   await loadFonts(doc);
   drawVoucher(doc, voucher);
 
-  if (voucher.attachSource && voucher.sourceImageUrl) {
-    addSourceImagePage(doc, voucher.sourceImageUrl);
+  if (hasSource) {
+    drawSourceImage(doc, voucher.sourceImageUrl, 148 + 4);
   }
 
   return doc.output("blob");
@@ -423,25 +461,40 @@ export async function generateVoucherPdf(
 
 /**
  * Generate a multi-page PDF with all vouchers.
- * Each voucher gets its page, followed by the source image page if attachSource is on.
+ * Each voucher with source gets an A4 page (voucher + image together).
+ * Each voucher without source gets an A5 landscape page.
  */
 export async function generateBatchPdf(
   vouchers: VoucherData[]
 ): Promise<Blob> {
+  // Use the first voucher's format for the initial page
+  const first = vouchers[0];
+  const firstHasSource = first?.attachSource && first?.sourceImageUrl;
+
   const doc = new jsPDF({
-    orientation: "landscape",
+    orientation: firstHasSource ? "portrait" : "landscape",
     unit: "mm",
-    format: "a5",
+    format: firstHasSource ? "a4" : "a5",
   });
 
   await loadFonts(doc);
 
   for (let i = 0; i < vouchers.length; i++) {
-    if (i > 0) doc.addPage("a5", "landscape");
-    drawVoucher(doc, vouchers[i]);
+    const v = vouchers[i];
+    const hasSource = v.attachSource && v.sourceImageUrl;
 
-    if (vouchers[i].attachSource && vouchers[i].sourceImageUrl) {
-      addSourceImagePage(doc, vouchers[i].sourceImageUrl);
+    if (i > 0) {
+      if (hasSource) {
+        doc.addPage("a4", "portrait");
+      } else {
+        doc.addPage("a5", "landscape");
+      }
+    }
+
+    drawVoucher(doc, v);
+
+    if (hasSource) {
+      drawSourceImage(doc, v.sourceImageUrl, 148 + 4);
     }
   }
 
