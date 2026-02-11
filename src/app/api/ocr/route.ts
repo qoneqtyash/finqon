@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ocrImage } from "@/lib/vlm/client";
 
+const MAX_BASE64_SIZE = 10 * 1024 * 1024; // ~10MB base64 (roughly 7.5MB image)
+
 /**
  * POST /api/ocr
  * Runs OCR on a single base64 image using Qwen VL (primary) → GPT-4o (fallback).
@@ -10,11 +12,28 @@ import { ocrImage } from "@/lib/vlm/client";
  */
 export async function POST(request: NextRequest) {
   try {
-    const { imageBase64 } = await request.json();
-
-    if (!imageBase64) {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
-        { error: "imageBase64 is required" },
+        { error: "Invalid JSON body" },
+        { status: 400 }
+      );
+    }
+
+    const { imageBase64 } = body;
+
+    if (!imageBase64 || typeof imageBase64 !== "string") {
+      return NextResponse.json(
+        { error: "imageBase64 is required and must be a string" },
+        { status: 400 }
+      );
+    }
+
+    if (imageBase64.length > MAX_BASE64_SIZE) {
+      return NextResponse.json(
+        { error: "Image too large for OCR processing" },
         { status: 400 }
       );
     }

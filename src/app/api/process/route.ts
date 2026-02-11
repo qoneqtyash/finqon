@@ -3,6 +3,8 @@ import { extractImagesFromDocx } from "@/lib/files/docx-extractor";
 import { extractImagesFromPdf } from "@/lib/files/pdf-extractor";
 import { optimizeImage } from "@/lib/files/image-optimizer";
 
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
 /**
  * POST /api/process
  * Accepts FormData with a "file" field.
@@ -18,6 +20,13 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB` },
+        { status: 400 }
+      );
     }
 
     const ext = file.name.split(".").pop()?.toLowerCase() || "";

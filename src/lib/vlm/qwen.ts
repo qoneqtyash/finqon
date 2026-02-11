@@ -47,7 +47,11 @@ export async function callQwen(imageDataUri: string): Promise<string> {
     }
 
     const data = await resp.json();
-    return data.choices[0].message.content;
+    const content = data?.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error("vLLM returned empty or malformed response");
+    }
+    return content;
   } finally {
     clearTimeout(timer);
   }

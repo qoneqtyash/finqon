@@ -55,6 +55,13 @@ export default function PdfDownloadButton({
         win.addEventListener("load", () => {
           win.print();
         });
+        // Clean up the Object URL after the window closes or after a timeout
+        const cleanup = () => URL.revokeObjectURL(url);
+        win.addEventListener("afterprint", cleanup);
+        // Fallback: revoke after 5 minutes if window stays open
+        setTimeout(cleanup, 5 * 60 * 1000);
+      } else {
+        URL.revokeObjectURL(url);
       }
     } catch (err) {
       console.error("PDF print failed:", err);

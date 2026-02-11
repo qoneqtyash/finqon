@@ -37,13 +37,19 @@ export function useOcrProcessing() {
         body: formData,
       });
 
-      if (!resp.ok) {
-        const err = await resp.json();
-        throw new Error(err.error || "Failed to process file");
+      const text = await resp.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        throw new Error(`Server error: ${text.slice(0, 100)}`);
       }
 
-      const { images } = await resp.json();
-      return (images as { name: string; base64: string }[]).map((img) => ({
+      if (!resp.ok) {
+        throw new Error(json.error || "Failed to process file");
+      }
+
+      return (json.images as { name: string; base64: string }[]).map((img) => ({
         ...img,
         sourceFileName: file.name,
       }));
@@ -56,34 +62,55 @@ export function useOcrProcessing() {
    */
   const ocrSingleImage = useCallback(
     async (imageBase64: string): Promise<OcrResult> => {
-      const resp = await fetch("/api/ocr", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64 }),
-      });
+      try {
+        const resp = await fetch("/api/ocr", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageBase64 }),
+        });
 
-      if (!resp.ok) {
-        const err = await resp.json();
+        const text = await resp.text();
+        let json;
+        try {
+          json = JSON.parse(text);
+        } catch {
+          return {
+            imageUrl: "",
+            data: null,
+            provider: "qwen",
+            error: `Server error: ${text.slice(0, 100)}`,
+          };
+        }
+
+        if (!resp.ok) {
+          return {
+            imageUrl: "",
+            data: null,
+            provider: "qwen",
+            error: json.error || "OCR failed",
+          };
+        }
+
         return {
-          imageUrl: `data:image/jpeg;base64,${imageBase64.slice(0, 50)}`,
+          imageUrl: "",
+          data: json.data,
+          provider: json.provider,
+        };
+      } catch (err) {
+        return {
+          imageUrl: "",
           data: null,
           provider: "qwen",
-          error: err.error,
+          error: (err as Error).message,
         };
       }
-
-      const result = await resp.json();
-      return {
-        imageUrl: "",
-        data: result.data,
-        provider: result.provider,
-      };
     },
     []
   );
 
   /**
    * Run OCR on multiple base64 images with concurrency limit.
+   * Uses atomic index counter to avoid race conditions with shared queue.
    */
   const ocrBatch = useCallback(
     async (images: ExtractedImage[]): Promise<(OcrResult & { image: ExtractedImage })[]> => {
@@ -96,13 +123,14 @@ export function useOcrProcessing() {
 
       const results: (OcrResult & { image: ExtractedImage })[] = [];
       const concurrency = 3;
-      const queue = [...images];
+      let nextIndex = 0;
 
       const worker = async () => {
-        while (queue.length > 0) {
-          const img = queue.shift();
-          if (!img) break;
+        while (true) {
+          const idx = nextIndex++;
+          if (idx >= images.length) break;
 
+          const img = images[idx];
           const result = await ocrSingleImage(img.base64);
           results.push({ ...result, image: img });
 

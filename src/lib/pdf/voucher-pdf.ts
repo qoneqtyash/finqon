@@ -8,38 +8,50 @@ const BLUE_INK: [number, number, number] = [0, 0, 150];
 const PINK_BG: [number, number, number] = [230, 200, 200];
 const GREEN_HL: [number, number, number] = [220, 240, 220];
 
-let fontsLoaded = false;
+// Cache font base64 strings in module scope (fetched once, reused per doc)
+let cachedRegularB64: string | null = null;
+let cachedBoldB64: string | null = null;
+
+/**
+ * Convert ArrayBuffer to base64 without spread operator (avoids stack overflow on large arrays).
+ */
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunks: string[] = [];
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    chunks.push(String.fromCharCode.apply(null, chunk as unknown as number[]));
+  }
+  return btoa(chunks.join(""));
+}
 
 /**
  * Load NotoSans fonts into jsPDF's VFS.
- * Must be called once before generating PDFs.
+ * Font data is cached in module scope; each new doc gets fonts registered.
  */
 async function loadFonts(doc: jsPDF): Promise<void> {
-  if (fontsLoaded) return;
-
   try {
-    const [regularResp, boldResp] = await Promise.all([
-      fetch("/fonts/NotoSans-Regular.ttf"),
-      fetch("/fonts/NotoSans-Bold.ttf"),
-    ]);
+    // Fetch fonts only once
+    if (!cachedRegularB64 || !cachedBoldB64) {
+      const [regularResp, boldResp] = await Promise.all([
+        fetch("/fonts/NotoSans-Regular.ttf"),
+        fetch("/fonts/NotoSans-Bold.ttf"),
+      ]);
 
-    const regularBuf = await regularResp.arrayBuffer();
-    const boldBuf = await boldResp.arrayBuffer();
+      const regularBuf = await regularResp.arrayBuffer();
+      const boldBuf = await boldResp.arrayBuffer();
 
-    // Convert to base64
-    const regularB64 = btoa(
-      String.fromCharCode(...new Uint8Array(regularBuf))
-    );
-    const boldB64 = btoa(String.fromCharCode(...new Uint8Array(boldBuf)));
+      cachedRegularB64 = arrayBufferToBase64(regularBuf);
+      cachedBoldB64 = arrayBufferToBase64(boldBuf);
+    }
 
-    // Add to VFS
-    doc.addFileToVFS("NotoSans-Regular.ttf", regularB64);
+    // Always register fonts on the current doc instance
+    doc.addFileToVFS("NotoSans-Regular.ttf", cachedRegularB64);
     doc.addFont("NotoSans-Regular.ttf", "NotoSans", "normal");
 
-    doc.addFileToVFS("NotoSans-Bold.ttf", boldB64);
+    doc.addFileToVFS("NotoSans-Bold.ttf", cachedBoldB64);
     doc.addFont("NotoSans-Bold.ttf", "NotoSans", "bold");
-
-    fontsLoaded = true;
   } catch (err) {
     console.warn("Could not load NotoSans fonts, using default:", err);
   }
@@ -346,13 +358,33 @@ function addSourceImagePage(doc: jsPDF, imageDataUri: string): void {
   doc.text("Source Receipt", pageW / 2, margin + 5, { align: "center" });
 
   try {
+    // Get image dimensions to preserve aspect ratio
+    const imgProps = doc.getImageProperties(imageDataUri);
+    const imgAspect = imgProps.width / imgProps.height;
+    const boxAspect = maxW / maxH;
+
+    let drawW = maxW;
+    let drawH = maxH;
+
+    if (imgAspect > boxAspect) {
+      // Image is wider — fit to width
+      drawH = maxW / imgAspect;
+    } else {
+      // Image is taller — fit to height
+      drawW = maxH * imgAspect;
+    }
+
+    // Center within available area
+    const drawX = margin + (maxW - drawW) / 2;
+    const drawY = margin + 10 + (maxH - drawH) / 2;
+
     doc.addImage(
       imageDataUri,
       "JPEG",
-      margin,
-      margin + 10,
-      maxW,
-      maxH,
+      drawX,
+      drawY,
+      drawW,
+      drawH,
       undefined,
       "FAST",
     );
