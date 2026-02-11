@@ -19,8 +19,8 @@ export default function VoucherPreview({ voucher }: VoucherPreviewProps) {
       className="bg-white border-2 rounded select-none"
       style={{
         borderColor: "#b43232",
-        width: "420px",
-        height: "296px",
+        width: "580px",
+        height: "410px",
         fontSize: "10px",
         fontFamily: "'Noto Sans', sans-serif",
         position: "relative",
