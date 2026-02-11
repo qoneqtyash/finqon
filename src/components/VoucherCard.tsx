@@ -38,6 +38,21 @@ export default function VoucherCard({
           >
             {showSource ? "Hide" : "Show"} Source
           </button>
+          <button
+            onClick={() => onChange({ attachSource: !voucher.attachSource })}
+            className={`text-xs px-2 py-1 rounded ${
+              voucher.attachSource
+                ? "bg-green-100 text-green-700 hover:bg-green-200"
+                : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+            }`}
+            title={
+              voucher.attachSource
+                ? "Source image will be attached as a second page in the PDF"
+                : "Click to attach source image to PDF"
+            }
+          >
+            {voucher.attachSource ? "Source Attached" : "Attach Source"}
+          </button>
           <PdfDownloadButton vouchers={[voucher]} label="PDF" />
           <button
             onClick={onRemove}
@@ -49,16 +64,23 @@ export default function VoucherCard({
       </div>
 
       <div className="p-4">
-        {/* Source image comparison */}
+        {/* Source image — larger and more visible */}
         {showSource && (
-          <div className="mb-4 p-2 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-xs text-gray-500 mb-1">Source Receipt Image</p>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={voucher.sourceImageUrl}
-              alt="Source receipt"
-              className="max-h-64 rounded border border-gray-300 object-contain"
-            />
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-xs font-medium text-gray-500 mb-2">
+              Source Receipt Image
+              {voucher.attachSource && (
+                <span className="ml-2 text-green-600">(will be attached to PDF)</span>
+              )}
+            </p>
+            <div className="flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={voucher.sourceImageUrl}
+                alt="Source receipt"
+                className="max-h-[500px] max-w-full rounded-lg border border-gray-300 shadow-sm object-contain"
+              />
+            </div>
           </div>
         )}
 

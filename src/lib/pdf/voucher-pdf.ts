@@ -328,7 +328,47 @@ function drawVoucher(doc: jsPDF, data: VoucherData): void {
 }
 
 /**
+ * Add the source receipt image as a full page (portrait A5).
+ * The image is centered and scaled to fit within margins.
+ */
+function addSourceImagePage(doc: jsPDF, imageDataUri: string): void {
+  doc.addPage("a5", "portrait");
+  const pageW = 148; // A5 portrait width
+  const pageH = 210; // A5 portrait height
+  const margin = 10;
+  const maxW = pageW - 2 * margin;
+  const maxH = pageH - 2 * margin - 10; // leave room for title
+
+  // Title
+  doc.setFont("NotoSans", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Source Receipt", pageW / 2, margin + 5, { align: "center" });
+
+  try {
+    doc.addImage(
+      imageDataUri,
+      "JPEG",
+      margin,
+      margin + 10,
+      maxW,
+      maxH,
+      undefined,
+      "FAST",
+    );
+  } catch (err) {
+    console.warn("Could not attach source image to PDF:", err);
+    doc.setFontSize(9);
+    doc.setTextColor(180, 50, 50);
+    doc.text("(Source image could not be embedded)", pageW / 2, pageH / 2, {
+      align: "center",
+    });
+  }
+}
+
+/**
  * Generate a single-voucher PDF and return the blob.
+ * If attachSource is true, the source receipt image is added as a second page.
  */
 export async function generateVoucherPdf(
   voucher: VoucherData
@@ -342,11 +382,16 @@ export async function generateVoucherPdf(
   await loadFonts(doc);
   drawVoucher(doc, voucher);
 
+  if (voucher.attachSource && voucher.sourceImageUrl) {
+    addSourceImagePage(doc, voucher.sourceImageUrl);
+  }
+
   return doc.output("blob");
 }
 
 /**
- * Generate a multi-page PDF with all vouchers, one per page.
+ * Generate a multi-page PDF with all vouchers.
+ * Each voucher gets its page, followed by the source image page if attachSource is on.
  */
 export async function generateBatchPdf(
   vouchers: VoucherData[]
@@ -362,6 +407,10 @@ export async function generateBatchPdf(
   for (let i = 0; i < vouchers.length; i++) {
     if (i > 0) doc.addPage("a5", "landscape");
     drawVoucher(doc, vouchers[i]);
+
+    if (vouchers[i].attachSource && vouchers[i].sourceImageUrl) {
+      addSourceImagePage(doc, vouchers[i].sourceImageUrl);
+    }
   }
 
   return doc.output("blob");

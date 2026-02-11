@@ -5,9 +5,6 @@
     },
     "src/app/api/process/route.ts": {
       "maxDuration": 10
-    },
-    "src/app/api/upload-token/route.ts": {
-      "maxDuration": 10
     }
   }
 }

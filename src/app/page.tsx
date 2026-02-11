@@ -6,13 +6,13 @@ import FileList from "@/components/FileList";
 import ProcessingStatus from "@/components/ProcessingStatus";
 import VoucherList from "@/components/VoucherList";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { useOcrProcessing } from "@/hooks/useOcrProcessing";
+import { useOcrProcessing, ExtractedImage } from "@/hooks/useOcrProcessing";
 import { useVoucherState } from "@/hooks/useVoucherState";
 import { mapOcrToVoucher } from "@/lib/utils/field-mapper";
 import { UploadedFile } from "@/types/voucher";
 
 export default function Home() {
-  const { files, addFiles, removeFile, updateFile, uploadAll, clearFiles } =
+  const { files, addFiles, removeFile, updateFile, clearFiles } =
     useFileUpload();
   const { processing, setProcessing, extractImages, ocrBatch } =
     useOcrProcessing();
@@ -37,30 +37,22 @@ export default function Home() {
     setError(null);
 
     try {
-      // Step 1: Upload files to Blob
+      // Step 1: Extract images from each file
       setProcessing({
         total: pendingFiles.length,
         completed: 0,
         failed: 0,
-        stage: "uploading",
+        stage: "extracting",
       });
-      const blobUrlMap = await uploadAll(pendingFiles);
 
-      // Step 2: Extract images from uploaded files
-      setProcessing((prev) => ({ ...prev, stage: "extracting" }));
-      const allImageUrls: { url: string; fileName: string }[] = [];
+      const allImages: ExtractedImage[] = [];
 
       for (const file of pendingFiles) {
-        const blobUrl = blobUrlMap.get(file.id);
-        if (!blobUrl) continue;
-
         updateFile(file.id, { status: "processing" });
         try {
-          const imageUrls = await extractImages(blobUrl, file.name);
-          updateFile(file.id, { status: "done", imageUrls });
-          for (const url of imageUrls) {
-            allImageUrls.push({ url, fileName: file.name });
-          }
+          const images = await extractImages(file.file);
+          updateFile(file.id, { status: "done" });
+          allImages.push(...images);
         } catch (err) {
           updateFile(file.id, {
             status: "error",
@@ -69,24 +61,24 @@ export default function Home() {
         }
       }
 
-      if (allImageUrls.length === 0) {
+      if (allImages.length === 0) {
         setError("No images could be extracted from the uploaded files.");
         setIsRunning(false);
         return;
       }
 
-      // Step 3: Run OCR on all images
-      const ocrResults = await ocrBatch(allImageUrls.map((i) => i.url));
+      // Step 2: Run OCR on all images
+      const ocrResults = await ocrBatch(allImages);
 
-      // Step 4: Map OCR results to voucher data
+      // Step 3: Map OCR results to voucher data
       const newVouchers = ocrResults
         .filter((r) => r.data !== null)
         .map((r) => {
-          const fileInfo = allImageUrls.find((i) => i.url === r.imageUrl);
+          const dataUri = `data:image/jpeg;base64,${r.image.base64}`;
           return mapOcrToVoucher(
             r.data!,
-            r.imageUrl,
-            fileInfo?.fileName || "unknown",
+            dataUri,
+            r.image.sourceFileName,
             r.provider
           );
         });
@@ -113,7 +105,6 @@ export default function Home() {
     ocrBatch,
     setProcessing,
     updateFile,
-    uploadAll,
   ]);
 
   const handleStartFresh = useCallback(() => {

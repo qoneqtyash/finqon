@@ -81,6 +81,7 @@ export function mapOcrToVoucher(
     andDebit: "", // Left blank — finance fills manually
     authorisedBy: data.from_account || "",
     paidByMethod: "cash",
+    attachSource: false,
     ocrProvider: provider,
     rawOcrData: data,
   };

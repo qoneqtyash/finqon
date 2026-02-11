@@ -2,9 +2,9 @@ import { OCR_PROMPT } from "./prompt";
 
 /**
  * Qwen VL adapter — calls vLLM on RunPod via OpenAI-compatible endpoint.
- * Uses VLLM_HOST and VLLM_MODEL env vars.
+ * Accepts a data URI (data:image/jpeg;base64,...).
  */
-export async function callQwen(imageUrl: string): Promise<string> {
+export async function callQwen(imageDataUri: string): Promise<string> {
   const host = process.env.VLLM_HOST;
   const model = process.env.VLLM_MODEL;
 
@@ -31,7 +31,7 @@ export async function callQwen(imageUrl: string): Promise<string> {
             role: "user",
             content: [
               { type: "text", text: OCR_PROMPT },
-              { type: "image_url", image_url: { url: imageUrl } },
+              { type: "image_url", image_url: { url: imageDataUri } },
             ],
           },
         ],

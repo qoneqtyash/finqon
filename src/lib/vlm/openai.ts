@@ -1,9 +1,10 @@
 import { OCR_PROMPT } from "./prompt";
 
 /**
- * GPT-4o Vision adapter — uses the OpenAI REST API directly (Edge-compatible).
+ * GPT-4o Vision adapter — uses the OpenAI REST API directly.
+ * Accepts a data URI (data:image/jpeg;base64,...).
  */
-export async function callOpenAI(imageUrl: string): Promise<string> {
+export async function callOpenAI(imageDataUri: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY not configured");
@@ -22,7 +23,7 @@ export async function callOpenAI(imageUrl: string): Promise<string> {
           role: "user",
           content: [
             { type: "text", text: OCR_PROMPT },
-            { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
+            { type: "image_url", image_url: { url: imageDataUri, detail: "high" } },
           ],
         },
       ],

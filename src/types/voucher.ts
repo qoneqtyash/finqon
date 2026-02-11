@@ -32,6 +32,7 @@ export interface VoucherData {
   andDebit: string;
   authorisedBy: string;
   paidByMethod: "cash" | "bank" | "cheque";
+  attachSource: boolean;
   ocrProvider: "qwen" | "openai" | "manual";
   rawOcrData: OcrData | null;
 }

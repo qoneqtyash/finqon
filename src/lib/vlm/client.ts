@@ -10,12 +10,12 @@ export interface VlmResult {
 
 /**
  * Dual VLM client with failover: Qwen VL (primary) → GPT-4o (fallback).
- * Accepts a publicly-accessible image URL (Vercel Blob).
+ * Accepts a data URI (data:image/jpeg;base64,...).
  */
-export async function ocrImage(imageUrl: string): Promise<VlmResult> {
+export async function ocrImage(imageDataUri: string): Promise<VlmResult> {
   // Try Qwen first
   try {
-    const rawText = await callQwen(imageUrl);
+    const rawText = await callQwen(imageDataUri);
     const data = extractJson(rawText);
     if (data) {
       return { data, provider: "qwen" };
@@ -27,7 +27,7 @@ export async function ocrImage(imageUrl: string): Promise<VlmResult> {
 
   // Fallback to GPT-4o
   try {
-    const rawText = await callOpenAI(imageUrl);
+    const rawText = await callOpenAI(imageDataUri);
     const data = extractJson(rawText);
     if (data) {
       return { data, provider: "openai" };
