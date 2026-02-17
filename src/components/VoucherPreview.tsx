@@ -233,11 +233,12 @@ export default function VoucherPreview({ voucher }: VoucherPreviewProps) {
 
           {/* Right: Receiver&apos;s Signature */}
           <div
-            className="flex flex-col items-center justify-center border border-[#b43232] rounded-sm"
+            className="flex flex-col items-center justify-end border border-[#b43232] rounded-sm"
             style={{
-              width: "65px",
-              height: "44px",
+              width: "75px",
+              height: "52px",
               backgroundColor: "#e6c8c8",
+              paddingBottom: "4px",
             }}
           >
             <span

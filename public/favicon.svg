@@ -1,0 +1,17 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Document with rounded corners -->
+  <rect x="4" y="2" width="20" height="26" rx="3" fill="none" stroke="#b43232" stroke-width="2"/>
+  
+  <!-- Text lines -->
+  <line x1="8" y1="8" x2="16" y2="8" stroke="#b43232" stroke-width="1.5"/>
+  <line x1="8" y1="12" x2="16" y2="12" stroke="#b43232" stroke-width="1.5"/>
+  <line x1="8" y1="16" x2="16" y2="16" stroke="#b43232" stroke-width="1.5"/>
+  <line x1="8" y1="20" x2="14" y2="20" stroke="#b43232" stroke-width="1.5"/>
+  
+  <!-- Blue line -->
+  <line x1="20" y1="6" x2="20" y2="26" stroke="#4a9eff" stroke-width="2"/>
+  
+  <!-- Rupee circle -->
+  <circle cx="23" cy="24" r="6" fill="#1e3a8a"/>
+  <text x="23" y="27" font-family="Arial" font-size="8" font-weight="bold" fill="white" text-anchor="middle">₹</text>
+</svg>

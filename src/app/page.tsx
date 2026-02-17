@@ -262,10 +262,8 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">
-              Cash Voucher Generator
-            </h1>
+          <div className="flex items-center gap-3">
+            <img src="/logo.svg" alt="VoucherExtract" className="h-12" />
             <p className="text-xs text-gray-500">
               Upload receipts for OCR or create from scratch &rarr; Edit &rarr; Download PDF
             </p>

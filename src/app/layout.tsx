@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cash Voucher Generator",
+  title: "VoucherExtract - AI-Powered OCR",
   description: "Upload receipt images, extract data via OCR, generate Cash Voucher PDFs",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

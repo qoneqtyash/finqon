@@ -318,8 +318,8 @@ function drawVoucher(doc: jsPDF, data: VoucherData): void {
   doc.line(amtX - 1, recdY + 3, amtX + ulW, recdY + 3);
 
   // ── Receiver's Signature box ──
-  const sigW = 35;
-  const sigH = 22;
+  const sigW = 40;
+  const sigH = 26;
   const sigX = mx + cw - sigW - 2;
   const sigY = bottomEnd - sigH - 2;
 
@@ -335,8 +335,8 @@ function drawVoucher(doc: jsPDF, data: VoucherData): void {
   const t2 = "Signature";
   const t1W = doc.getTextWidth(t1);
   const t2W = doc.getTextWidth(t2);
-  doc.text(t1, sigX + (sigW - t1W) / 2, sigY + 9);
-  doc.text(t2, sigX + (sigW - t2W) / 2, sigY + 15);
+  doc.text(t1, sigX + (sigW - t1W) / 2, sigY + sigH - 7);
+  doc.text(t2, sigX + (sigW - t2W) / 2, sigY + sigH - 2);
 }
 
 /**

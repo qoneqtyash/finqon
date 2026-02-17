@@ -1,0 +1,27 @@
+<svg width="400" height="100" viewBox="0 0 400 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Document icon with rounded rectangle border -->
+  <rect x="10" y="15" width="60" height="70" rx="8" fill="none" stroke="#b43232" stroke-width="3"/>
+  
+  <!-- Document lines (red) -->
+  <line x1="22" y1="30" x2="45" y2="30" stroke="#b43232" stroke-width="2.5"/>
+  <line x1="22" y1="40" x2="45" y2="40" stroke="#b43232" stroke-width="2.5"/>
+  <line x1="22" y1="50" x2="45" y2="50" stroke="#b43232" stroke-width="2.5"/>
+  <line x1="22" y1="60" x2="38" y2="60" stroke="#b43232" stroke-width="2.5"/>
+  
+  <!-- Blue vertical line through center -->
+  <line x1="52" y1="25" x2="52" y2="75" stroke="#4a9eff" stroke-width="3"/>
+  
+  <!-- Rupee symbol circle (bottom right of document) -->
+  <circle cx="58" cy="72" r="13" fill="#1e3a8a"/>
+  <text x="58" y="78" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">₹</text>
+  
+  <!-- VoucherExtract text -->
+  <text x="85" y="52" font-family="Arial, sans-serif" font-size="32" font-weight="700" fill="#2d3748">
+    Voucher<tspan fill="#b43232">Extract</tspan>
+  </text>
+  
+  <!-- AI-POWERED OCR subtitle -->
+  <text x="85" y="72" font-family="Arial, sans-serif" font-size="14" font-weight="400" fill="#718096" letter-spacing="2">
+    AI-POWERED OCR
+  </text>
+</svg>
